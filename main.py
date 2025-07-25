@@ -1,53 +1,45 @@
-import re
-from typing import List
 from pathlib import Path
+from src.principal import TextProcessor
 
-class TextProcessor:
-    """
-    Classe para processamento de textos com expressões regulares.
-    Versão robusta com tratamento de erros e caminhos absolutos.
-    """
+def main():
+    # Configuração robusta de caminhos
+    BASE_DIR = Path(__file__).parent
+    DATA_DIR = BASE_DIR / "data"
+    DATA_DIR.mkdir(exist_ok=True)  # Cria a pasta se não existir
     
-    def __init__(self, file_path: str | Path) -> None:
-        self.file_path = Path(file_path).absolute()
-        if not self.file_path.exists():
-            raise FileNotFoundError(f"Arquivo não encontrado: {self.file_path}")
-        self.content = ""
+    file_path = DATA_DIR / "exemplo.txt"
     
-    def __str__(self) -> str:
-        return f"Processador de: '{self.file_path.name}' ({len(self.content)} caracteres)"
-    
-    def read_file(self) -> None:
-        """Lê o arquivo com tratamento de encoding"""
-        try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
-                self.content = file.read()
-        except UnicodeDecodeError:
-            with open(self.file_path, 'r', encoding='latin-1') as file:
-                self.content = file.read()
+    try:
+        # Verificação explícita do arquivo
+        if not file_path.exists():
+            raise FileNotFoundError(
+                f"Crie o arquivo '{file_path}' com texto para processamento!\n"
+                f"Local esperado: {file_path.absolute()}"
+            )
+        
+        # Processamento
+        processor = TextProcessor(file_path)
+        processor.read_file()
+        
+        print("="*50)
+        print(f"{processor}\n")
+        
+        print("[1] Palavras começando com 'a':")
+        print(processor.filter_words_starting_with('a'))
+        
+        print("\n[2] Datas encontradas:")
+        print(processor.extract_dates())
+        
+        print("\n[3] Texto com dados sensíveis ocultos:")
+        print(processor.hide_sensitive_info()[:300] + "...")
+        
+        print("\n" + "="*50)
+        
+    except Exception as e:
+        print(f"\nERRO: {e}\n")
+        print("Solução:")
+        print(f"1. Crie a pasta 'data' na raiz do projeto")
+        print(f"2. Adicione um arquivo 'exemplo.txt' dentro dela")
 
-    def filter_words_starting_with(self, letter: str) -> List[str]:
-        """Filtra palavras por letra inicial (case insensitive)"""
-        pattern = re.compile(rf'\b[{letter.lower()}{letter.upper()}]\w*\b')
-        return pattern.findall(self.content)
-    
-    def filter_words_containing(self, letter: str) -> List[str]:
-        """Filtra palavras que contêm a letra em qualquer posição"""
-        pattern = re.compile(rf'\b\w*[{letter.lower()}{letter.upper()}]\w*\b')
-        return pattern.findall(self.content)
-    
-    def replace_commas_with_dots(self) -> str:
-        """Substitui vírgulas por pontos"""
-        return self.content.replace(',', '.')
-    
-    def extract_dates(self) -> List[str]:
-        """Extrai datas nos formatos DD/MM/AAAA ou DD-MM-AAAA"""
-        pattern = re.compile(r'\b\d{2}[/-]\d{2}[/-]\d{4}\b')
-        return pattern.findall(self.content)
-    
-    def hide_sensitive_info(self) -> str:
-        """Ofusca e-mails, CPFs e telefones"""
-        text = re.sub(r'\b[\w.-]+@[\w.-]+\.\w+\b', '[EMAIL]', self.content)
-        text = re.sub(r'\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b', '[CPF]', text)
-        text = re.sub(r'\(?\d{2}\)?[\s-]?\d{4,5}[\s-]?\d{4}\b', '[TELEFONE]', text)
-        return text
+if __name__ == "__main__":
+    main()
